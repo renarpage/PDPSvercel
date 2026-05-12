@@ -1,0 +1,3386 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIPDPS Harvester — Data Pertanian</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --gold: #d4a017;
+        --gold-light: #f5c842;
+        --gold-dim: #9b7512;
+        --green: #1e5c2f;
+        --green-mid: #b8890e;
+        --green-light: #f5c842;
+        --cream: #faf6ee;
+        --brown: #3d2b0e;
+        --ink: #1a1206;
+        --muted: #7a6a50;
+        --border: rgba(212, 160, 23, 0.2);
+        --card-bg: rgba(255, 251, 240, 0.95);
+        --red: #c0392b;
+        --red-light: #e74c3c;
+        --blue: #9b7512;
+        --blue-mid: #d4a017;
+        --blue-light: #f5c842;
+        --shadow: 0 4px 32px rgba(30, 20, 5, 0.12);
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Montserrat", sans-serif;
+        background: var(--cream);
+        color: var(--ink);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background:
+          radial-gradient(
+            ellipse 80% 60% at 10% 0%,
+            rgba(212, 160, 23, 0.08) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 60% 80% at 90% 100%,
+            rgba(212, 160, 23, 0.05) 0%,
+            transparent 60%
+          ),
+          url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23D4A017' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
+          var(--cream);
+      }
+
+      /* ===== HEADER ===== */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(26, 18, 6, 0.97);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(212, 160, 23, 0.3);
+        padding: 0 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 64px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .logo-icon {
+        width: 36px;
+        height: 36px;
+        background: var(--gold);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+      .logo-text {
+        font-family: "Montserrat", sans-serif;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--cream);
+        letter-spacing: -0.5px;
+      }
+      .logo-text span {
+        color: var(--gold-light);
+      }
+      .nav-status {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      #status-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 100px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        transition: all 0.3s;
+      }
+      .status-offline {
+        background: rgba(192, 57, 43, 0.15);
+        color: #e74c3c;
+        border: 1px solid rgba(192, 57, 43, 0.3);
+      }
+      .status-online {
+        background: rgba(212, 160, 23, 0.15);
+        color: var(--gold);
+        border: 1px solid rgba(212, 160, 23, 0.4);
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      /* ===== LAYOUT ===== */
+      .app {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem;
+      }
+
+      /* ===== HERO ===== */
+      .hero {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+      .hero-tag {
+        display: inline-block;
+        background: rgba(212, 160, 23, 0.12);
+        border: 1px solid var(--border);
+        color: var(--gold-dim);
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        padding: 6px 16px;
+        border-radius: 100px;
+        margin-bottom: 1rem;
+      }
+      .hero h1 {
+        font-family: "Montserrat", sans-serif;
+        font-size: clamp(2rem, 5vw, 3.2rem);
+        font-weight: 800;
+        color: var(--brown);
+        line-height: 1.15;
+        letter-spacing: -1px;
+        margin-bottom: 0.75rem;
+      }
+      .hero h1 span {
+        color: var(--gold);
+      }
+      .hero p {
+        color: var(--muted);
+        font-size: 1rem;
+        max-width: 520px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      /* ===== TAB NAV ===== */
+      .section-tabs {
+        display: flex;
+        gap: 4px;
+        background: rgba(212, 160, 23, 0.08);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 5px;
+        margin-bottom: 2rem;
+      }
+      .tab-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 11px 20px;
+        border-radius: 10px;
+        border: none;
+        font-family: "Montserrat", sans-serif;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s;
+        background: transparent;
+        color: var(--muted);
+      }
+      .tab-btn.active {
+        background: var(--ink);
+        color: var(--gold-light);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
+      .tab-btn:hover:not(.active) {
+        background: rgba(212, 160, 23, 0.1);
+        color: var(--brown);
+      }
+
+      /* ===== SECTION PANELS ===== */
+      .section-panel {
+        display: none;
+      }
+      .section-panel.active {
+        display: block;
+        animation: fadeIn 0.35s ease;
+      }
+
+      /* ===== CARDS ===== */
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: var(--shadow);
+        margin-bottom: 1.5rem;
+        backdrop-filter: blur(4px);
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1.5rem;
+      }
+      .card-icon {
+        width: 38px;
+        height: 38px;
+        background: linear-gradient(
+          135deg,
+          var(--gold) 0%,
+          var(--gold-dim) 100%
+        );
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+      .card-icon.green {
+        background: linear-gradient(
+          135deg,
+          var(--gold) 0%,
+          var(--gold-dim) 100%
+        );
+      }
+      .card-icon.blue {
+        background: linear-gradient(
+          135deg,
+          var(--gold-dim) 0%,
+          var(--brown) 100%
+        );
+      }
+      .card-title {
+        font-family: "Montserrat", sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--brown);
+      }
+      .card-subtitle {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      /* ===== FORM ELEMENTS ===== */
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .form-grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+      }
+      .form-grid-4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 768px) {
+        .form-grid,
+        .form-grid-3,
+        .form-grid-4 {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 480px) {
+        .form-grid,
+        .form-grid-3,
+        .form-grid-4 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--brown);
+        letter-spacing: 0.3px;
+      }
+      input[type="text"],
+      input[type="password"],
+      select,
+      input[type="number"] {
+        padding: 11px 14px;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        background: white;
+        font-family: "Montserrat", sans-serif;
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+      input:focus,
+      select:focus {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.12);
+      }
+
+      /* ===== PILL CHECKBOXES ===== */
+      .pill-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 2px;
+      }
+      .pill-check {
+        display: none;
+      }
+      .pill-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 100px;
+        border: 1.5px solid var(--border);
+        background: white;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+      }
+      .pill-check:checked + .pill-label {
+        background: var(--gold);
+        border-color: var(--gold);
+        color: white;
+        font-weight: 600;
+      }
+      .pill-label:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+      .pill-check:checked + .pill-label:hover {
+        color: white;
+      }
+
+      /* ===== PROVINCE SELECTOR ===== */
+      .province-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 6px;
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 12px;
+        background: white;
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        margin-top: 8px;
+      }
+      .prov-check {
+        display: none;
+      }
+      .prov-label {
+        display: block;
+        padding: 7px 10px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .prov-check:checked + .prov-label {
+        background: rgba(212, 160, 23, 0.12);
+        border-color: var(--gold);
+        color: var(--brown);
+        font-weight: 600;
+      }
+      .prov-label:hover {
+        background: rgba(212, 160, 23, 0.06);
+        color: var(--brown);
+      }
+      .province-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      /* ===== BUTTONS ===== */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border-radius: 12px;
+        border: none;
+        font-family: "Montserrat", sans-serif;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, var(--gold) 0%, #b8890e 100%);
+        color: white;
+        box-shadow: 0 4px 20px rgba(212, 160, 23, 0.35);
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 28px rgba(212, 160, 23, 0.45);
+      }
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+      .btn-green {
+        background: linear-gradient(
+          135deg,
+          var(--gold) 0%,
+          var(--gold-dim) 100%
+        );
+        color: white;
+        box-shadow: 0 4px 20px rgba(212, 160, 23, 0.35);
+      }
+      .btn-green:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 28px rgba(212, 160, 23, 0.5);
+      }
+      .btn-blue {
+        background: linear-gradient(
+          135deg,
+          var(--gold-dim) 0%,
+          var(--brown) 100%
+        );
+        color: white;
+        box-shadow: 0 4px 20px rgba(155, 117, 18, 0.28);
+      }
+      .btn-blue:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 28px rgba(155, 117, 18, 0.42);
+      }
+      .btn-sm {
+        padding: 7px 14px;
+        font-size: 0.8rem;
+        border-radius: 8px;
+      }
+      .btn-outline {
+        background: transparent;
+        border: 1.5px solid var(--border);
+        color: var(--muted);
+      }
+      .btn-outline:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+      }
+      .btn-full {
+        width: 100%;
+      }
+
+      /* ===== LOGIN OVERLAY ===== */
+      #login-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        background: rgba(26, 18, 6, 0.85);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .login-card {
+        background: var(--cream);
+        border-radius: 24px;
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--border);
+        animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(24px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .login-logo {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      .login-logo .logo-big {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(
+          135deg,
+          var(--gold) 0%,
+          var(--gold-dim) 100%
+        );
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin: 0 auto 12px;
+        box-shadow: 0 8px 24px rgba(212, 160, 23, 0.35);
+      }
+      .login-logo h2 {
+        font-family: "Montserrat", sans-serif;
+        font-weight: 800;
+        font-size: 1.5rem;
+        color: var(--brown);
+      }
+      .login-logo p {
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin-top: 4px;
+      }
+      .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      #login-error {
+        background: rgba(192, 57, 43, 0.1);
+        border: 1px solid rgba(192, 57, 43, 0.3);
+        color: var(--red);
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        display: none;
+      }
+
+      /* ===== DASHBOARD - STATS ROW ===== */
+      .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      @media (max-width: 768px) {
+        .stats-row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.2rem 1.4rem;
+        box-shadow: 0 2px 16px rgba(30, 20, 5, 0.08);
+        transition: transform 0.2s;
+      }
+      .stat-card:hover {
+        transform: translateY(-2px);
+      }
+      .stat-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .stat-value {
+        font-family: "Montserrat", sans-serif;
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--brown);
+        line-height: 1.1;
+      }
+      .stat-unit {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+      .stat-trend {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        margin-top: 6px;
+      }
+      .trend-up {
+        color: var(--gold);
+      }
+      .trend-down {
+        color: var(--red-light);
+      }
+
+      /* ===== CHARTS ===== */
+      .charts-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+      @media (max-width: 900px) {
+        .charts-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .chart-wrap {
+        position: relative;
+        width: 100%;
+      }
+      .chart-wrap canvas {
+        width: 100% !important;
+      }
+
+      .ranking-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .rank-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: white;
+        border: 1px solid var(--border);
+        transition: all 0.2s;
+      }
+      .rank-item:hover {
+        border-color: var(--gold);
+        transform: translateX(3px);
+      }
+      .rank-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: rgba(212, 160, 23, 0.12);
+        color: var(--gold-dim);
+        font-family: "Montserrat", sans-serif;
+      }
+      .rank-num.gold-medal {
+        background: var(--gold);
+        color: white;
+      }
+      .rank-num.silver-medal {
+        background: #9b9b9b;
+        color: white;
+      }
+      .rank-num.bronze-medal {
+        background: #a0522d;
+        color: white;
+      }
+      .rank-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .rank-name {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--brown);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .rank-val {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      .rank-bar-wrap {
+        width: 60px;
+      }
+      .rank-bar-bg {
+        height: 4px;
+        background: rgba(212, 160, 23, 0.12);
+        border-radius: 4px;
+      }
+      .rank-bar-fill {
+        height: 4px;
+        background: var(--gold);
+        border-radius: 4px;
+        transition: width 0.6s ease;
+      }
+
+      /* ===== DASHBOARD CONTROLS ===== */
+      .dash-controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        margin-bottom: 1.5rem;
+      }
+      .dash-controls .field {
+        min-width: 140px;
+      }
+      .dash-live-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 100px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: rgba(212, 160, 23, 0.12);
+        border: 1px solid rgba(212, 160, 23, 0.35);
+        color: var(--gold-dim);
+        align-self: flex-end;
+        margin-bottom: 1px;
+      }
+      .dash-live-badge .dot-pulse {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--gold);
+        animation: pulse 1.4s ease infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(0.8);
+        }
+      }
+
+      /* ===== EMPTY STATE ===== */
+      .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: var(--muted);
+      }
+      .empty-state .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+      }
+      .empty-state h3 {
+        font-family: "Montserrat", sans-serif;
+        font-size: 1.1rem;
+        color: var(--brown);
+        margin-bottom: 0.5rem;
+      }
+      .empty-state p {
+        font-size: 0.88rem;
+      }
+
+      /* ===== CHART TYPE TOGGLE ===== */
+      .chart-type-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 1rem;
+      }
+      .chart-type-btn {
+        padding: 5px 14px;
+        border-radius: 8px;
+        border: 1.5px solid var(--border);
+        font-family: "Montserrat", sans-serif;
+      }
+      .chart-type-btn.active {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--gold-light);
+      }
+
+      /* ===== PROGRESS SECTION ===== */
+      #progress-section {
+        display: none;
+      }
+      .progress-track {
+        height: 8px;
+        background: rgba(212, 160, 23, 0.12);
+        border-radius: 100px;
+        overflow: hidden;
+        margin: 12px 0;
+      }
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          var(--gold) 0%,
+          var(--gold-light) 100%
+        );
+        border-radius: 100px;
+        transition: width 0.4s ease;
+        width: 0%;
+        position: relative;
+      }
+      .progress-bar::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 40px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.4)
+        );
+        animation: shimmer 1.5s infinite;
+      }
+      @keyframes shimmer {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      .progress-pct {
+        font-family: "Montserrat", sans-serif;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--gold);
+        line-height: 1;
+      }
+      .log-box {
+        background: var(--ink);
+        border-radius: 12px;
+        padding: 14px 16px;
+        max-height: 180px;
+        overflow-y: auto;
+        font-family: "Courier New", monospace;
+        font-size: 0.8rem;
+        color: rgba(250, 246, 238, 0.8);
+      }
+      .log-box .log-line {
+        padding: 2px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .log-box .log-line:last-child {
+        border: none;
+        color: var(--gold-light);
+      }
+
+      /* ===== DOWNLOAD SECTION ===== */
+      #download-section {
+        display: none;
+        text-align: center;
+        padding: 1.5rem;
+        background: rgba(212, 160, 23, 0.08);
+        border: 1px solid rgba(212, 160, 23, 0.3);
+        border-radius: 16px;
+        margin-top: 1rem;
+      }
+      .download-icon {
+        font-size: 3rem;
+        margin-bottom: 8px;
+        animation: bounce 1s ease infinite alternate;
+      }
+      @keyframes bounce {
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-6px);
+        }
+      }
+
+      /* ===== EXCEL FORMAT OPTIONS ===== */
+      .excel-options {
+        margin-top: 1rem;
+      }
+      .option-group {
+        margin-bottom: 1.2rem;
+      }
+      .option-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--brown);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .option-label::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+      .toggle-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .toggle-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 10px;
+        border: 1.5px solid var(--border);
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+        font-size: 0.84rem;
+        font-weight: 500;
+        color: var(--muted);
+      }
+      .toggle-item input[type="checkbox"] {
+        display: none;
+      }
+      .toggle-item.checked {
+        border-color: var(--gold);
+        color: var(--brown);
+        background: rgba(212, 160, 23, 0.06);
+      }
+      .toggle-item .check-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        border: 1.5px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+      .toggle-item.checked .check-icon {
+        background: var(--gold);
+        border-color: var(--gold);
+        color: white;
+      }
+
+      .color-swatches {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .swatch {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+        position: relative;
+      }
+      .swatch.selected {
+        border-color: var(--ink);
+        transform: scale(1.15);
+      }
+      .swatch.selected::after {
+        content: "✓";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .font-size-input {
+        width: 80px;
+      }
+      .preview-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(212, 160, 23, 0.1);
+        border: 1px solid rgba(212, 160, 23, 0.3);
+        color: var(--gold-dim);
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+
+      /* ===== MISC ===== */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(212, 160, 23, 0.3);
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--gold);
+      }
+      .card {
+        animation: fadeIn 0.5s ease both;
+      }
+      .card:nth-child(2) {
+        animation-delay: 0.08s;
+      }
+      .card:nth-child(3) {
+        animation-delay: 0.16s;
+      }
+      .card:nth-child(4) {
+        animation-delay: 0.24s;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .hidden {
+        display: none !important;
+      }
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: 1.5rem 0;
+      }
+      .info-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .info-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(212, 160, 23, 0.08);
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        padding: 4px 12px;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .info-chip b {
+        color: var(--brown);
+      }
+      #province-selector {
+        display: none;
+      }
+      .loading-spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(212, 160, 23, 0.3);
+        border-top-color: var(--gold);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .chart-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 220px;
+        color: var(--muted);
+        gap: 10px;
+        font-size: 0.9rem;
+      }
+
+      /* ===== NOTULENSI CARD ===== */
+      .notulensi-section {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.2rem 1.4rem;
+      }
+      .notulensi-section-title {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--gold-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .notulensi-body {
+        font-size: 0.88rem;
+        color: var(--ink);
+        line-height: 1.7;
+      }
+      .notulensi-body ul {
+        margin: 6px 0 0 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .notulensi-body li {
+        color: var(--muted);
+      }
+      .notulensi-body li b {
+        color: var(--brown);
+      }
+      .notulensi-highlight {
+        display: inline-block;
+        background: rgba(212, 160, 23, 0.1);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-weight: 700;
+        color: var(--brown);
+        font-size: 0.9rem;
+      }
+
+      /* ===== DOUBLE SELECT (Kab/Kota per Provinsi) ===== */
+      .double-select-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      @media (max-width: 600px) {
+        .double-select-wrap {
+          grid-template-columns: 1fr;
+        }
+      }
+      .dbl-select-box {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .dbl-select-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--brown);
+      }
+      .dbl-select-list {
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        background: white;
+        overflow-y: auto;
+        max-height: 200px;
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .dbl-select-list .dbl-item {
+        padding: 6px 10px;
+        border-radius: 7px;
+        font-size: 0.8rem;
+        color: var(--muted);
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.15s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .dbl-select-list .dbl-item:hover {
+        background: rgba(212, 160, 23, 0.07);
+        color: var(--brown);
+      }
+      .dbl-select-list .dbl-item.selected {
+        background: rgba(212, 160, 23, 0.14);
+        border: 1px solid var(--gold);
+        color: var(--brown);
+        font-weight: 600;
+      }
+      .dbl-select-actions {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 4px;
+      }
+      .kab-select-wrap {
+        display: none;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- LOGIN OVERLAY -->
+    <div id="login-overlay">
+      <div class="login-card">
+        <div class="login-logo">
+          <div class="logo-big">🌾</div>
+          <h2>SIPDPS Harvester</h2>
+          <p>Login dengan akun SIPDPS Anda</p>
+        </div>
+        <div class="login-form">
+          <div id="login-error"></div>
+          <div class="field">
+            <label>Username</label>
+            <input
+              type="text"
+              id="login-username"
+              placeholder="Masukkan username"
+              autocomplete="username"
+            />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input
+              type="password"
+              id="login-password"
+              placeholder="Masukkan password"
+              autocomplete="current-password"
+            />
+          </div>
+          <div
+            style="
+              border-top: 1px solid var(--border);
+              margin: 4px 0;
+              padding-top: 4px;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 10px;
+              "
+            >
+            </div>
+            <div class="field">
+              <label>Web Password</label>
+              <input
+                type="password"
+                id="login-webpass"
+                placeholder="Masukkan web password"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <button
+            class="btn btn-primary btn-full"
+            id="login-btn"
+            onclick="doLogin()"
+          >
+            <span>🔓</span> Masuk ke SIPDPS
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEADER -->
+    <header>
+      <div class="logo">
+        <div class="logo-icon">🌾</div>
+        <div class="logo-text">SIPDPS <span>Harvester</span></div>
+      </div>
+      <div class="nav-status">
+        <div id="status-badge" class="status-offline">
+          <div class="dot"></div>
+          <span id="status-text">Belum Login</span>
+        </div>
+        <button
+          class="btn btn-outline btn-sm hidden"
+          id="logout-btn"
+          onclick="doLogout()"
+        >
+          Keluar
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN APP -->
+    <div class="app">
+      <div class="hero">
+        <div class="hero-tag">Kementerian Pertanian RI</div>
+        <h1>Rekap Data <span>Tanaman Pangan</span></h1>
+        <p>
+          Visualisasi realtime & unduh data Luas Tanam, Panen & Puso dari SIPDPS
+          ke Excel dengan format yang bisa dikustomisasi.
+        </p>
+      </div>
+
+      <!-- TAB NAVIGATION -->
+      <div class="section-tabs">
+        <button
+          class="tab-btn active"
+          onclick="switchTab('dashboard')"
+          id="tab-dashboard"
+        >
+          📊 Dashboard & Visualisasi
+        </button>
+        <button class="tab-btn" onclick="switchTab('scrape')" id="tab-scrape">
+          📥 Unduh Data Excel
+        </button>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- TAB 1: DASHBOARD REALTIME -->
+      <!-- ============================================================ -->
+      <div class="section-panel active" id="panel-dashboard">
+        <!-- Dashboard Controls -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon blue">📊</div>
+            <div>
+              <div class="card-title">Parameter Visualisasi</div>
+              <div class="card-subtitle">
+                Pilih data yang ingin ditampilkan secara realtime
+              </div>
+            </div>
+            <div style="margin-left: auto">
+              <div
+                class="dash-live-badge"
+                id="live-badge"
+                style="display: none"
+              >
+                <div class="dot-pulse"></div>
+                Live
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid-4" style="margin-bottom: 1rem">
+            <div class="field">
+              <label>Komoditas</label>
+              <select id="dash-commodity">
+                <option value="Kacang Tanah">Kacang Tanah</option>
+                <option value="Jagung">Jagung</option>
+                <option value="Kedelai">Kedelai</option>
+                <option value="Ubi Kayu">Ubi Kayu</option>
+                <option value="Ubi Jalar">Ubi Jalar</option>
+                <option value="Kacang Hijau">Kacang Hijau</option>
+                <option value="Padi">Padi</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Tahun / Rentang Tahun</label>
+              <div style="display: flex; gap: 6px; align-items: center">
+                <select id="dash-year" style="flex: 1">
+                  <option value="2026" selected>2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                  <option value="2021">2021</option>
+                  <option value="2020">2020</option>
+                  <option value="2019">2019</option>
+                  <option value="2018">2018</option>
+                </select>
+                <span
+                  style="
+                    color: var(--muted);
+                    font-weight: 600;
+                    font-size: 0.82rem;
+                    white-space: nowrap;
+                  "
+                  >s/d</span
+                >
+                <select id="dash-year-to" style="flex: 1">
+                  <option value="">—</option>
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                  <option value="2021">2021</option>
+                  <option value="2020">2020</option>
+                  <option value="2019">2019</option>
+                  <option value="2018">2018</option>
+                </select>
+              </div>
+              <span
+                style="font-size: 0.72rem; color: var(--muted); margin-top: 2px"
+                >Pilih "s/d" untuk bandingkan antar tahun</span
+              >
+            </div>
+            <div class="field">
+              <label>Jenis Data</label>
+              <select id="dash-type">
+                <option value="panen">🌾 Luas Panen</option>
+                <option value="tanam">🌱 Luas Tanam</option>
+                <option value="puso">💀 Luas Puso</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Tampilkan</label>
+              <select id="dash-sort">
+                <option value="desc">Tertinggi → Terendah</option>
+                <option value="asc">Terendah → Tertinggi</option>
+                <option value="alpha">Alfabetis</option>
+              </select>
+            </div>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              flex-wrap: wrap;
+              align-items: center;
+            "
+          >
+            <button
+              class="btn btn-blue"
+              onclick="loadDashboard()"
+              id="dash-load-btn"
+              style="padding: 11px 28px"
+            >
+              <span>⚡</span> Tampilkan Data
+            </button>
+            <button
+              class="btn btn-outline btn-sm"
+              onclick="refreshDashboard()"
+              id="dash-refresh-btn"
+              style="display: none"
+            >
+              ↻ Refresh
+            </button>
+            <span
+              style="font-size: 0.8rem; color: var(--muted)"
+              id="dash-last-update"
+            ></span>
+          </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row" id="stats-row" style="display: none">
+          <div class="stat-card">
+            <div class="stat-label">Total Nasional</div>
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-unit">hektar</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Rata-rata Provinsi</div>
+            <div class="stat-value" id="stat-avg">—</div>
+            <div class="stat-unit">hektar</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Provinsi Tertinggi</div>
+            <div class="stat-value" id="stat-max-val">—</div>
+            <div class="stat-unit" id="stat-max-name">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Provinsi Terendah</div>
+            <div class="stat-value" id="stat-min-val">—</div>
+            <div class="stat-unit" id="stat-min-name">—</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid" id="charts-grid" style="display: none">
+          <!-- Bar / Line Chart -->
+          <div class="card" style="margin-bottom: 0">
+            <div class="card-header" style="margin-bottom: 0.5rem">
+              <div class="card-icon">📈</div>
+              <div>
+                <div class="card-title" id="bar-chart-title">
+                  Perbandingan Antar Provinsi
+                </div>
+                <div class="card-subtitle">
+                  Total akumulasi sepanjang tahun (hektar)
+                </div>
+              </div>
+            </div>
+            <div class="chart-type-row">
+              <button
+                class="chart-type-btn active"
+                onclick="setChartType('bar')"
+                id="btn-bar"
+              >
+                Bar
+              </button>
+              <button
+                class="chart-type-btn"
+                onclick="setChartType('line')"
+                id="btn-line"
+              >
+                Tren Bulanan
+              </button>
+              <button
+                class="chart-type-btn"
+                onclick="setChartType('radar')"
+                id="btn-radar"
+              >
+                Radar Bulan
+              </button>
+            </div>
+            <div class="chart-wrap" style="height: 320px; position: relative">
+              <div class="chart-loading" id="bar-loading" style="display: none">
+                <div class="loading-spinner"></div>
+                Memuat data...
+              </div>
+              <canvas id="barChart" style="display: block"></canvas>
+            </div>
+          </div>
+
+          <!-- Ranking -->
+          <div class="card" style="margin-bottom: 0">
+            <div class="card-header" style="margin-bottom: 0.5rem">
+              <div class="card-icon green">🏆</div>
+              <div>
+                <div class="card-title">Ranking Provinsi</div>
+                <div class="card-subtitle" id="ranking-subtitle">
+                  Top 10 berdasarkan total
+                </div>
+              </div>
+            </div>
+            <div class="ranking-list" id="ranking-list">
+              <div class="empty-state">
+                <div class="empty-icon">📊</div>
+                <h3>Belum ada data</h3>
+                <p>Tekan "Tampilkan Data" untuk memuat</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monthly Trend Card (conditionally shown) -->
+        <div
+          class="card"
+          id="monthly-card"
+          style="display: none; margin-top: 1.5rem"
+        >
+          <div class="card-header">
+            <div class="card-icon">📅</div>
+            <div>
+              <div class="card-title">Tren Bulanan Nasional</div>
+              <div class="card-subtitle">
+                Distribusi per bulan sepanjang tahun
+              </div>
+            </div>
+          </div>
+          <div class="chart-wrap" style="height: 260px; position: relative">
+            <canvas id="monthlyChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Notulensi / Rangkuman Card -->
+        <div
+          class="card"
+          id="notulensi-card"
+          style="display: none; margin-top: 1.5rem"
+        >
+          <div class="card-header">
+            <div class="card-icon blue">📝</div>
+            <div>
+              <div class="card-title">Rangkuman & Notulensi Data</div>
+              <div class="card-subtitle" id="notulensi-subtitle">
+                Analisis otomatis dari data yang ditampilkan
+              </div>
+            </div>
+            <div style="margin-left: auto">
+              <button
+                class="btn btn-outline btn-sm"
+                onclick="copyNotulensi()"
+                id="copy-notulensi-btn"
+                title="Salin teks rangkuman"
+              >
+                📋 Salin
+              </button>
+            </div>
+          </div>
+          <div
+            id="notulensi-content"
+            style="display: flex; flex-direction: column; gap: 1rem"
+          ></div>
+        </div>
+      </div>
+      <!-- /panel-dashboard -->
+
+      <!-- ============================================================ -->
+      <!-- TAB 2: SCRAPE & DOWNLOAD -->
+      <!-- ============================================================ -->
+      <div class="section-panel" id="panel-scrape">
+        <!-- STEP 1: PARAMETER -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon">⚙️</div>
+            <div>
+              <div class="card-title">Parameter Pengambilan Data</div>
+              <div class="card-subtitle">
+                Atur komoditas, tahun, dan jenis rekap yang ingin diambil
+              </div>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Komoditas</label>
+              <select id="commodity">
+                <option value="Kacang Tanah">Kacang Tanah</option>
+                <option value="Jagung">Jagung</option>
+                <option value="Kedelai">Kedelai</option>
+                <option value="Ubi Kayu">Ubi Kayu</option>
+                <option value="Ubi Jalar">Ubi Jalar</option>
+                <option value="Kacang Hijau">Kacang Hijau</option>
+                <option value="Padi">Padi</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Tahun / Rentang Tahun</label>
+              <div style="display: flex; gap: 8px; align-items: center">
+                <input
+                  type="number"
+                  id="year-from"
+                  value="2026"
+                  min="2018"
+                  max="2030"
+                  placeholder="Dari"
+                  style="flex: 1"
+                />
+                <span
+                  style="
+                    color: var(--muted);
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                    white-space: nowrap;
+                  "
+                  >s/d</span
+                >
+                <input
+                  type="number"
+                  id="year-to"
+                  min="2018"
+                  max="2030"
+                  placeholder="(opsional)"
+                  style="flex: 1"
+                />
+              </div>
+              <span
+                style="font-size: 0.75rem; color: var(--muted); margin-top: 2px"
+              >
+                Isi "s/d" untuk rentang multi-tahun. Kosongkan untuk satu tahun
+                saja.
+              </span>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="field" style="margin-bottom: 1rem">
+            <label
+              >Jenis Rekap
+              <span style="color: var(--muted); font-weight: 400"
+                >(pilih satu atau lebih)</span
+              ></label
+            >
+            <div class="pill-group">
+              <input
+                type="checkbox"
+                class="pill-check"
+                id="type-tanam"
+                value="tanam"
+                checked
+              />
+              <label class="pill-label" for="type-tanam">🌱 Luas Tanam</label>
+              <input
+                type="checkbox"
+                class="pill-check"
+                id="type-panen"
+                value="panen"
+              />
+              <label class="pill-label" for="type-panen">🌾 Luas Panen</label>
+              <input
+                type="checkbox"
+                class="pill-check"
+                id="type-puso"
+                value="puso"
+              />
+              <label class="pill-label" for="type-puso">💀 Luas Puso</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>Cakupan Wilayah</label>
+            <div class="pill-group">
+              <input
+                type="radio"
+                class="pill-check"
+                name="scope"
+                id="scope-semua"
+                value="semua"
+              />
+              <label class="pill-label" for="scope-semua">🌐 Semua</label>
+              <input
+                type="radio"
+                class="pill-check"
+                name="scope"
+                id="scope-national"
+                value="national"
+              />
+              <label class="pill-label" for="scope-national">🌏 Nasional</label>
+              <input
+                type="radio"
+                class="pill-check"
+                name="scope"
+                id="scope-provinsi"
+                value="provinsi"
+                checked
+              />
+              <label class="pill-label" for="scope-provinsi"
+                >🗺️ Per Provinsi</label
+              >
+              <input
+                type="radio"
+                class="pill-check"
+                name="scope"
+                id="scope-all"
+                value="all"
+              />
+              <label class="pill-label" for="scope-all"
+                >📍 Provinsi + Kab/Kota</label
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: PROVINCE & KAB SELECTION (double select) -->
+        <div class="card" id="province-card">
+          <div class="card-header">
+            <div class="card-icon">🗺️</div>
+            <div>
+              <div class="card-title">Pilih Wilayah</div>
+              <div class="card-subtitle">
+                Jika scope "Semua" dipilih, bagian ini disembunyikan. Jika
+                tidak, pilih provinsi spesifik — lalu pilih kabupaten/kota
+                (opsional).
+              </div>
+            </div>
+          </div>
+
+          <!-- Provinsi double-select -->
+          <div>
+            <div class="dbl-select-label" style="margin-bottom: 6px">
+              🗺️ Provinsi
+              <span style="color: var(--muted); font-weight: 400"
+                >(biarkan kosong = semua)</span
+              >
+            </div>
+            <div class="dbl-select-actions">
+              <button
+                class="btn btn-outline btn-sm"
+                onclick="selectAllProvinces()"
+              >
+                ☑ Semua
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="clearProvinces()">
+                ✕ Hapus
+              </button>
+            </div>
+            <div class="province-grid" id="province-grid"></div>
+            <div
+              id="prov-count"
+              class="info-row"
+              style="margin-top: 10px"
+            ></div>
+          </div>
+
+          <!-- Kab/Kota double-select (muncul bila 1 provinsi dipilih) -->
+          <div class="kab-select-wrap" id="kab-select-wrap">
+            <div class="divider" style="margin: 1rem 0 0.8rem"></div>
+            <div class="dbl-select-label" style="margin-bottom: 6px">
+              🏙️ Kabupaten/Kota Spesifik
+              <span style="color: var(--muted); font-weight: 400"
+                >(opsional — biarkan kosong = semua kab di provinsi
+                terpilih)</span
+              >
+            </div>
+            <div class="double-select-wrap">
+              <div class="dbl-select-box">
+                <div
+                  class="dbl-select-label"
+                  style="font-size: 0.75rem; color: var(--muted)"
+                >
+                  Tersedia
+                </div>
+                <div class="dbl-select-actions">
+                  <button
+                    class="btn btn-outline btn-sm"
+                    onclick="dblSelectAll()"
+                  >
+                    ☑ Semua →
+                  </button>
+                  <input
+                    type="text"
+                    id="kab-search"
+                    placeholder="Cari kab..."
+                    onkeyup="filterKabList()"
+                    style="
+                      flex: 1;
+                      padding: 5px 10px;
+                      font-size: 0.78rem;
+                      border-radius: 8px;
+                      border: 1.5px solid var(--border);
+                      font-family: inherit;
+                    "
+                  />
+                </div>
+                <div class="dbl-select-list" id="kab-available"></div>
+              </div>
+              <div class="dbl-select-box">
+                <div
+                  class="dbl-select-label"
+                  style="font-size: 0.75rem; color: var(--muted)"
+                >
+                  Dipilih
+                </div>
+                <div class="dbl-select-actions">
+                  <button
+                    class="btn btn-outline btn-sm"
+                    onclick="dblClearAll()"
+                  >
+                    ✕ Hapus Semua
+                  </button>
+                </div>
+                <div class="dbl-select-list" id="kab-selected"></div>
+              </div>
+            </div>
+            <div id="kab-count" class="info-row" style="margin-top: 8px"></div>
+          </div>
+        </div>
+
+        <!-- STEP 3: EXCEL FORMAT OPTIONS -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon blue">🎨</div>
+            <div>
+              <div class="card-title">Format & Tampilan Excel</div>
+              <div class="card-subtitle">
+                Kustomisasi file Excel yang akan diunduh
+              </div>
+            </div>
+          </div>
+
+          <div class="excel-options">
+            <!-- Sheet Content -->
+            <div class="option-group">
+              <div class="option-label">Konten Sheet</div>
+              <div class="toggle-row">
+                <label class="toggle-item checked" id="tog-summary">
+                  <input
+                    type="checkbox"
+                    id="opt-summary"
+                    checked
+                    onchange="toggleItem(this)"
+                  />
+                  <div class="check-icon">✓</div>
+                  Sheet Ringkasan
+                </label>
+                <label class="toggle-item checked" id="tog-chart-sheet">
+                  <input
+                    type="checkbox"
+                    id="opt-chart-sheet"
+                    checked
+                    onchange="toggleItem(this)"
+                  />
+                  <div class="check-icon">✓</div>
+                  Baris Total Otomatis
+                </label>
+                <label class="toggle-item checked" id="tog-metadata">
+                  <input
+                    type="checkbox"
+                    id="opt-metadata"
+                    checked
+                    onchange="toggleItem(this)"
+                  />
+                  <div class="check-icon">✓</div>
+                  Metadata (tanggal, komoditas)
+                </label>
+                <label class="toggle-item" id="tog-freeze">
+                  <input
+                    type="checkbox"
+                    id="opt-freeze"
+                    onchange="toggleItem(this)"
+                  />
+                  <div class="check-icon"></div>
+                  Freeze Header Row
+                </label>
+                <label class="toggle-item" id="tog-filter">
+                  <input
+                    type="checkbox"
+                    id="opt-filter"
+                    onchange="toggleItem(this)"
+                  />
+                  <div class="check-icon"></div>
+                  Auto Filter Kolom
+                </label>
+                <label class="toggle-item" id="tog-conditional">
+                  <input
+                    type="checkbox"
+                    id="opt-conditional"
+                    onchange="toggleItem(this)"
+                  />
+                  <div class="check-icon"></div>
+                  Conditional Formatting
+                </label>
+              </div>
+            </div>
+
+            <!-- Style -->
+            <div class="option-group">
+              <div class="option-label">Gaya Header</div>
+              <div class="form-grid-3">
+                <div class="field">
+                  <label>Warna Header</label>
+                  <div class="color-swatches" id="header-color-swatches">
+                    <div
+                      class="swatch selected"
+                      data-color="1E5C2F"
+                      style="background: #1e5c2f"
+                      onclick="selectHeaderColor(this)"
+                      title="Hijau"
+                    ></div>
+                    <div
+                      class="swatch"
+                      data-color="D4A017"
+                      style="background: #d4a017"
+                      onclick="selectHeaderColor(this)"
+                      title="Emas"
+                    ></div>
+                    <div
+                      class="swatch"
+                      data-color="1A6FA8"
+                      style="background: #1a6fa8"
+                      onclick="selectHeaderColor(this)"
+                      title="Biru"
+                    ></div>
+                    <div
+                      class="swatch"
+                      data-color="7B3F00"
+                      style="background: #7b3f00"
+                      onclick="selectHeaderColor(this)"
+                      title="Coklat"
+                    ></div>
+                    <div
+                      class="swatch"
+                      data-color="2C3E50"
+                      style="background: #2c3e50"
+                      onclick="selectHeaderColor(this)"
+                      title="Abu"
+                    ></div>
+                    <div
+                      class="swatch"
+                      data-color="8E44AD"
+                      style="background: #8e44ad"
+                      onclick="selectHeaderColor(this)"
+                      title="Ungu"
+                    ></div>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Ukuran Font Data</label>
+                  <input
+                    type="number"
+                    id="opt-fontsize"
+                    class="font-size-input"
+                    value="10"
+                    min="8"
+                    max="16"
+                    style="width: 100%"
+                  />
+                </div>
+                <div class="field">
+                  <label>Tinggi Baris Header (pt)</label>
+                  <input
+                    type="number"
+                    id="opt-rowheight"
+                    value="20"
+                    min="14"
+                    max="40"
+                    style="width: 100%"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Number Format -->
+            <div class="option-group">
+              <div class="option-label">Format Angka & Kolom</div>
+              <div class="form-grid" style="gap: 1rem">
+                <div class="field">
+                  <label>Format Angka</label>
+                  <select id="opt-numformat">
+                    <option value="decimal">Desimal (1234.56)</option>
+                    <option value="thousand" selected>Ribuan (1.234,56)</option>
+                    <option value="integer">Bulat (1235)</option>
+                    <option value="scientific">Saintifik (1.23E+3)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Lebar Kolom Wilayah</label>
+                  <select id="opt-colwidth">
+                    <option value="auto" selected>Auto-fit</option>
+                    <option value="narrow">Sempit (20)</option>
+                    <option value="normal">Normal (28)</option>
+                    <option value="wide">Lebar (36)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="toggle-row" style="margin-top: 8px">
+                <label class="toggle-item checked" id="tog-bold-total">
+                  <input
+                    type="checkbox"
+                    id="opt-bold-total"
+                    checked
+                    onchange="toggleItem(this)"
+                  />
+                  <div class="check-icon">✓</div>
+                  Bold baris Total
+                </label>
+                <label class="toggle-item checked" id="tog-alt-rows">
+                  <input
+                    type="checkbox"
+                    id="opt-alt-rows"
+                    checked
+                    onchange="toggleItem(this)"
+                  />
+                  <div class="check-icon">✓</div>
+                  Alternating row color
+                </label>
+                <label class="toggle-item" id="tog-borders">
+                  <input
+                    type="checkbox"
+                    id="opt-borders"
+                    onchange="toggleItem(this)"
+                  />
+                  <div class="check-icon"></div>
+                  Border semua sel
+                </label>
+              </div>
+            </div>
+
+            <!-- File Settings -->
+            <div class="option-group">
+              <div class="option-label">Pengaturan File</div>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Nama File (opsional)</label>
+                  <input
+                    type="text"
+                    id="opt-filename"
+                    placeholder="Kosongkan = nama otomatis"
+                  />
+                </div>
+                <div class="field">
+                  <label>Format Output</label>
+                  <select id="opt-filetype">
+                    <option value="xlsx" selected>Excel (.xlsx)</option>
+                    <option value="csv">CSV (flat, per sheet)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- /excel-options -->
+        </div>
+        <!-- /excel format card -->
+
+        <!-- START BUTTON -->
+        <div style="text-align: center; margin: 1.5rem 0">
+          <button
+            class="btn btn-primary"
+            id="start-btn"
+            onclick="startScrape()"
+            style="padding: 16px 48px; font-size: 1rem; border-radius: 16px"
+          >
+            <span>🚀</span> Mulai Scraping & Unduh
+          </button>
+          <p style="color: var(--muted); font-size: 0.82rem; margin-top: 10px">
+            Proses berjalan di latar belakang. Jangan tutup halaman ini.
+          </p>
+        </div>
+
+        <!-- PROGRESS -->
+        <div class="card" id="progress-section">
+          <div class="card-header">
+            <div class="card-icon">⚡</div>
+            <div>
+              <div class="card-title">Proses Berjalan</div>
+              <div class="card-subtitle" id="progress-subtitle">
+                Mempersiapkan...
+              </div>
+            </div>
+          </div>
+          <div
+            style="
+              display: flex;
+              align-items: baseline;
+              gap: 8px;
+              margin-bottom: 4px;
+            "
+          >
+            <div class="progress-pct" id="progress-pct">0%</div>
+            <span
+              style="color: var(--muted); font-size: 0.85rem"
+              id="progress-label"
+              >selesai</span
+            >
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="progress-bar"></div>
+          </div>
+          <div style="margin-top: 1rem">
+            <div
+              style="
+                font-size: 0.82rem;
+                font-weight: 600;
+                color: var(--brown);
+                margin-bottom: 6px;
+              "
+            >
+              📋 Log Aktivitas
+            </div>
+            <div class="log-box" id="log-box"></div>
+          </div>
+
+          <!-- DOWNLOAD -->
+          <div id="download-section">
+            <div class="download-icon">📥</div>
+            <div
+              style="
+                font-family: &quot;Syne&quot;, sans-serif;
+                font-weight: 700;
+                font-size: 1.2rem;
+                color: var(--gold-dim);
+                margin-bottom: 6px;
+              "
+            >
+              Data Siap Diunduh!
+            </div>
+            <div
+              style="
+                color: var(--muted);
+                font-size: 0.88rem;
+                margin-bottom: 16px;
+              "
+              id="download-info"
+            ></div>
+            <button
+              class="btn btn-green"
+              id="download-btn"
+              onclick="downloadFile()"
+              style="font-size: 1rem; padding: 14px 36px"
+            >
+              <span>💾</span> Unduh File Excel
+            </button>
+            <br />
+            <button
+              class="btn btn-outline btn-sm"
+              onclick="resetForm()"
+              style="margin-top: 10px"
+            >
+              ↩ Scraping Baru
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- /panel-scrape -->
+    </div>
+    <!-- /app -->
+
+    <script>
+      const API = "";
+      let currentJobId = null;
+      let pollInterval = null;
+      let barChartInst = null;
+      let monthlyChartInst = null;
+      let dashboardData = null;
+      let selectedHeaderColor = "1E5C2F";
+      let currentChartType = "bar";
+
+      const PROVINCES = [
+        { id: "1", name: "ACEH" },
+        { id: "2", name: "SUMATERA UTARA" },
+        { id: "3", name: "SUMATERA BARAT" },
+        { id: "4", name: "RIAU" },
+        { id: "5", name: "JAMBI" },
+        { id: "6", name: "SUMATERA SELATAN" },
+        { id: "7", name: "BENGKULU" },
+        { id: "8", name: "LAMPUNG" },
+        { id: "9", name: "KEP. BANGKA BELITUNG" },
+        { id: "10", name: "KEP. RIAU" },
+        { id: "11", name: "DKI JAKARTA" },
+        { id: "12", name: "JAWA BARAT" },
+        { id: "13", name: "JAWA TENGAH" },
+        { id: "14", name: "DI YOGYAKARTA" },
+        { id: "15", name: "JAWA TIMUR" },
+        { id: "16", name: "BANTEN" },
+        { id: "17", name: "BALI" },
+        { id: "18", name: "NTB" },
+        { id: "19", name: "NTT" },
+        { id: "20", name: "KALIMANTAN BARAT" },
+        { id: "21", name: "KALIMANTAN TENGAH" },
+        { id: "22", name: "KALIMANTAN SELATAN" },
+        { id: "23", name: "KALIMANTAN TIMUR" },
+        { id: "24", name: "KALIMANTAN UTARA" },
+        { id: "25", name: "SULAWESI UTARA" },
+        { id: "26", name: "SULAWESI TENGAH" },
+        { id: "27", name: "SULAWESI SELATAN" },
+        { id: "28", name: "SULAWESI TENGGARA" },
+        { id: "29", name: "GORONTALO" },
+        { id: "30", name: "SULAWESI BARAT" },
+        { id: "31", name: "MALUKU" },
+        { id: "32", name: "MALUKU UTARA" },
+        { id: "33", name: "PAPUA BARAT" },
+        { id: "35", name: "PAPUA BARAT DAYA" },
+        { id: "34", name: "PAPUA" },
+        { id: "36", name: "PAPUA SELATAN" },
+        { id: "37", name: "PAPUA TENGAH" },
+        { id: "38", name: "PAPUA PEGUNUNGAN" },
+      ];
+
+      const MONTHS = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const MONTH_LABELS = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "Mei",
+        "Jun",
+        "Jul",
+        "Ags",
+        "Sep",
+        "Okt",
+        "Nov",
+        "Des",
+      ];
+
+      // ===================== TAB SWITCH =====================
+      function switchTab(tab) {
+        document
+          .querySelectorAll(".section-panel")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById("panel-" + tab).classList.add("active");
+        document.getElementById("tab-" + tab).classList.add("active");
+      }
+
+      // ===================== PROVINCE GRID =====================
+      const grid = document.getElementById("province-grid");
+      PROVINCES.forEach((p) => {
+        grid.innerHTML += `<div>
+    <input type="checkbox" class="prov-check" id="prov-${p.id}" value="${p.id}" onchange="onProvChange()">
+    <label class="prov-label" for="prov-${p.id}">${p.name}</label>
+  </div>`;
+      });
+
+      function updateProvCount() {
+        const checked = document.querySelectorAll(".prov-check:checked").length;
+        const el = document.getElementById("prov-count");
+        el.innerHTML =
+          checked > 0
+            ? `<div class="info-chip"><b>${checked}</b> provinsi dipilih</div>`
+            : `<div class="info-chip">Semua provinsi akan diambil (${PROVINCES.length})</div>`;
+      }
+      updateProvCount();
+
+      // ===== KAB DOUBLE-SELECT STATE =====
+      let kabAvailableList = []; // {id, name, provId}
+      let kabSelectedSet = new Set(); // name strings
+
+      function onProvChange() {
+        updateProvCount();
+        const checked = [...document.querySelectorAll(".prov-check:checked")];
+        const kabWrap = document.getElementById("kab-select-wrap");
+        if (checked.length === 0 || checked.length > 5) {
+          kabWrap.style.display = "none";
+          kabAvailableList = [];
+          kabSelectedSet.clear();
+          return;
+        }
+        // Show kab selector for selected provinces (static list from scrape.js PROVINCES won't have kab, so we show a note)
+        kabWrap.style.display = "block";
+        // Build available list from cached kab data
+        buildKabAvailable(checked.map((c) => c.value));
+      }
+
+      // Fetch kab list per province via /api/scrape/kabupaten/:provId (if exists), else show empty info
+      const kabCache = {}; // provId -> [name]
+      async function buildKabAvailable(provIds) {
+        const avail = document.getElementById("kab-available");
+        avail.innerHTML = `<div style="padding:10px;color:var(--muted);font-size:0.8rem">⏳ Memuat daftar kabupaten...</div>`;
+        let allKabs = [];
+        for (const pid of provIds) {
+          if (!kabCache[pid]) {
+            try {
+              const r = await fetch(`/api/scrape/kabupaten/${pid}`);
+              if (r.ok) {
+                kabCache[pid] = await r.json();
+              } else {
+                kabCache[pid] = [];
+              }
+            } catch (e) {
+              kabCache[pid] = [];
+            }
+          }
+          const prov = PROVINCES.find((p) => p.id === pid);
+          (kabCache[pid] || []).forEach((k) =>
+            allKabs.push({
+              id: `${pid}:${k}`,
+              name: k,
+              provName: prov?.name || "",
+            }),
+          );
+        }
+        kabAvailableList = allKabs;
+        // Remove selected items no longer in available
+        kabSelectedSet.forEach((n) => {
+          if (!allKabs.find((k) => k.name === n)) kabSelectedSet.delete(n);
+        });
+        renderKabLists();
+      }
+
+      function renderKabLists(filter = "") {
+        const avail = document.getElementById("kab-available");
+        const sel = document.getElementById("kab-selected");
+        const low = filter.toLowerCase();
+        const notSelected = kabAvailableList.filter(
+          (k) =>
+            !kabSelectedSet.has(k.name) &&
+            (!low || k.name.toLowerCase().includes(low)),
+        );
+        avail.innerHTML =
+          notSelected.length === 0
+            ? `<div style="padding:10px;color:var(--muted);font-size:0.8rem;text-align:center">${kabAvailableList.length === 0 ? "Kabupaten belum tersedia" : "Semua sudah dipilih"}</div>`
+            : notSelected
+                .map(
+                  (
+                    k,
+                  ) => `<div class="dbl-item" onclick="dblAddItem('${k.name.replace(/'/g, "\\'")}','${(k.provName || "").replace(/'/g, "\\'")}')">
+              <span style="font-size:0.7rem;color:var(--muted)">${k.provName} › </span>${k.name}
+            </div>`,
+                )
+                .join("");
+
+        const selArr = [...kabSelectedSet];
+        sel.innerHTML =
+          selArr.length === 0
+            ? `<div style="padding:10px;color:var(--muted);font-size:0.8rem;text-align:center">Belum ada yang dipilih</div>`
+            : selArr
+                .map(
+                  (
+                    n,
+                  ) => `<div class="dbl-item selected" onclick="dblRemoveItem('${n.replace(/'/g, "\\'")}')">
+              ${n} <span style="color:var(--red-light);float:right">✕</span>
+            </div>`,
+                )
+                .join("");
+
+        const countEl = document.getElementById("kab-count");
+        countEl.innerHTML =
+          selArr.length > 0
+            ? `<div class="info-chip"><b>${selArr.length}</b> kab/kota dipilih spesifik</div>`
+            : `<div class="info-chip">Semua kab/kota dalam provinsi terpilih</div>`;
+      }
+
+      function filterKabList() {
+        renderKabLists(document.getElementById("kab-search").value);
+      }
+      function dblAddItem(name) {
+        kabSelectedSet.add(name);
+        renderKabLists(document.getElementById("kab-search").value);
+      }
+      function dblRemoveItem(name) {
+        kabSelectedSet.delete(name);
+        renderKabLists(document.getElementById("kab-search").value);
+      }
+      function dblSelectAll() {
+        kabAvailableList.forEach((k) => kabSelectedSet.add(k.name));
+        renderKabLists();
+      }
+      function dblClearAll() {
+        kabSelectedSet.clear();
+        renderKabLists();
+      }
+
+      function selectAllProvinces() {
+        document
+          .querySelectorAll(".prov-check")
+          .forEach((c) => (c.checked = true));
+        updateProvCount();
+        onProvChange();
+      }
+      function clearProvinces() {
+        document
+          .querySelectorAll(".prov-check")
+          .forEach((c) => (c.checked = false));
+        updateProvCount();
+        onProvChange();
+      }
+
+      document.querySelectorAll('input[name="scope"]').forEach((r) => {
+        r.addEventListener("change", () => {
+          const scope = document.querySelector(
+            'input[name="scope"]:checked',
+          ).value;
+          document.getElementById("province-card").style.display =
+            scope === "national" || scope === "semua" ? "none" : "block";
+          if (scope === "national" || scope === "semua") {
+            document.getElementById("kab-select-wrap").style.display = "none";
+          }
+        });
+      });
+
+      // ===================== LOGIN =====================
+      async function checkStatus() {
+        try {
+          const res = await fetch("/api/auth/status");
+          const data = await res.json();
+          if (data.loggedIn) setLoggedIn(data.username);
+        } catch (e) {}
+      }
+
+      function setLoggedIn(username) {
+        document.getElementById("login-overlay").style.display = "none";
+        document.getElementById("status-badge").className = "status-online";
+        document.getElementById("status-badge").innerHTML =
+          `<div class="dot"></div><span>${username || "Logged In"}</span>`;
+        document.getElementById("logout-btn").classList.remove("hidden");
+      }
+
+      async function doLogin() {
+        const btn = document.getElementById("login-btn");
+        const errEl = document.getElementById("login-error");
+        const username = document.getElementById("login-username").value.trim();
+        const password = document.getElementById("login-password").value;
+        const webPassword = document.getElementById("login-webpass").value;
+        if (!username || !password) {
+          errEl.textContent = "Username dan password wajib diisi.";
+          errEl.style.display = "block";
+          return;
+        }
+        if (!webPassword) {
+          errEl.textContent = "Web password wajib diisi.";
+          errEl.style.display = "block";
+          return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = "<span>⏳</span> Memverifikasi...";
+        errEl.style.display = "none";
+        try {
+          const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password, webPassword }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setLoggedIn(username);
+          } else {
+            const debugHtml =
+              data.debug && data.debug.length
+                ? `<br><details style="margin-top:6px;font-size:0.78rem;opacity:0.85"><summary style="cursor:pointer">Detail teknis</summary>${data.debug.join("<br>")}</details>`
+                : "";
+            errEl.innerHTML = (data.message || "Login gagal.") + debugHtml;
+            errEl.style.display = "block";
+          }
+        } catch (e) {
+          errEl.textContent = "Tidak bisa terhubung ke server: " + e.message;
+          errEl.style.display = "block";
+        }
+        btn.disabled = false;
+        btn.innerHTML = "<span>🔓</span> Masuk ke SIPDPS";
+      }
+
+      async function doLogout() {
+        await fetch("/api/auth/logout", { method: "POST" });
+        location.reload();
+      }
+
+      document
+        .getElementById("login-password")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter")
+            document.getElementById("login-webpass").focus();
+        });
+      document
+        .getElementById("login-webpass")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter") doLogin();
+        });
+      document
+        .getElementById("login-username")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter")
+            document.getElementById("login-password").focus();
+        });
+
+      // ===================== DASHBOARD =====================
+      function fmtNum(n) {
+        if (n === undefined || n === null || isNaN(n)) return "—";
+        if (n >= 1000000) return (n / 1000000).toFixed(1) + " jt";
+        if (n >= 1000) return (n / 1000).toFixed(1) + " rb";
+        return n.toFixed(0);
+      }
+
+      function fmtFull(n) {
+        return n
+          ? n.toLocaleString("id-ID", { maximumFractionDigits: 2 })
+          : "—";
+      }
+
+      async function loadDashboard() {
+        const commodity = document.getElementById("dash-commodity").value;
+        const yearFrom = document.getElementById("dash-year").value;
+        const yearTo = document.getElementById("dash-year-to").value;
+        const type = document.getElementById("dash-type").value;
+        const sort = document.getElementById("dash-sort").value;
+        const isRange = yearTo && yearTo !== "" && yearTo !== yearFrom;
+
+        const btn = document.getElementById("dash-load-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loading-spinner"></div> Memuat...';
+        document.getElementById("bar-loading").style.display = "flex";
+        if (barChartInst) {
+          barChartInst.destroy();
+          barChartInst = null;
+        }
+        document.getElementById("stats-row").style.display = "none";
+        document.getElementById("charts-grid").style.display = "none";
+        document.getElementById("monthly-card").style.display = "none";
+        document.getElementById("notulensi-card").style.display = "none";
+
+        try {
+          if (isRange) {
+            // Multi-year: fetch each year then merge
+            const years = [];
+            for (let y = parseInt(yearFrom); y <= parseInt(yearTo); y++)
+              years.push(y);
+            const results = await Promise.all(
+              years.map((y) =>
+                fetch(
+                  `/api/scrape/preview?commodity=${encodeURIComponent(commodity)}&year=${y}&type=${type}`,
+                )
+                  .then((r) =>
+                    r.status === 401 ? Promise.reject("auth") : r.json(),
+                  )
+                  .then((d) => ({ year: y, ...d })),
+              ),
+            );
+            // Merge: aggregate per province across years
+            const mergedMap = {};
+            for (const res of results) {
+              for (const row of res.rows || []) {
+                if (!mergedMap[row.name])
+                  mergedMap[row.name] = {
+                    name: row.name,
+                    Total: 0,
+                    ...Object.fromEntries(MONTHS.map((m) => [m, 0])),
+                    _byYear: {},
+                  };
+                mergedMap[row.name].Total += row.Total || 0;
+                MONTHS.forEach((m) => {
+                  mergedMap[row.name][m] += row[m] || 0;
+                });
+                mergedMap[row.name]._byYear[res.year] = row.Total || 0;
+              }
+            }
+            const mergedRows = Object.values(mergedMap);
+            const mergedMonthly = MONTHS.map((m, mi) =>
+              results.reduce((s, r) => s + (r.monthlyNational?.[mi] || 0), 0),
+            );
+            dashboardData = {
+              rows: mergedRows,
+              monthlyNational: mergedMonthly,
+              _multiYear: results,
+              _years: years,
+            };
+            renderDashboard(dashboardData, sort, `${yearFrom}–${yearTo}`);
+          } else {
+            const res = await fetch(
+              `/api/scrape/preview?commodity=${encodeURIComponent(commodity)}&year=${yearFrom}&type=${type}`,
+            );
+            if (res.status === 401) {
+              alert("Sesi habis. Silakan login ulang.");
+              location.reload();
+              return;
+            }
+            const data = await res.json();
+            if (data.error) {
+              alert("Error: " + data.error);
+              return;
+            }
+            dashboardData = data;
+            renderDashboard(data, sort, yearFrom);
+          }
+
+          document.getElementById("live-badge").style.display = "flex";
+          document.getElementById("dash-refresh-btn").style.display = "";
+          document.getElementById("dash-last-update").textContent =
+            "Diperbarui: " + new Date().toLocaleTimeString("id-ID");
+        } catch (e) {
+          if (e === "auth") {
+            alert("Sesi habis. Silakan login ulang.");
+            location.reload();
+            return;
+          }
+          alert("Gagal memuat data: " + e.message);
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = "<span>⚡</span> Tampilkan Data";
+        document.getElementById("bar-loading").style.display = "none";
+      }
+
+      function refreshDashboard() {
+        loadDashboard();
+      }
+
+      function renderDashboard(data, sort, yearLabel) {
+        // data.rows = [{name, Jan..Dec, Total}]
+        // data.monthlyNational = [jan..dec] (national totals per month)
+        let rows = [...(data.rows || [])];
+        if (sort === "desc") rows.sort((a, b) => b.Total - a.Total);
+        else if (sort === "asc") rows.sort((a, b) => a.Total - b.Total);
+        else rows.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Stats
+        const totals = rows.map((r) => r.Total || 0);
+        const grandTotal = totals.reduce((a, b) => a + b, 0);
+        const avg = totals.length ? grandTotal / totals.length : 0;
+        const maxRow = rows.reduce(
+          (best, r) => (r.Total > (best ? best.Total : -1) ? r : best),
+          null,
+        );
+        const minRow = rows
+          .filter((r) => r.Total > 0)
+          .reduce(
+            (best, r) => (r.Total < (best ? best.Total : Infinity) ? r : best),
+            null,
+          );
+
+        document.getElementById("stat-total").textContent = fmtNum(grandTotal);
+        document.getElementById("stat-avg").textContent = fmtNum(avg);
+        document.getElementById("stat-max-val").textContent = maxRow
+          ? fmtNum(maxRow.Total)
+          : "—";
+        document.getElementById("stat-max-name").textContent = maxRow
+          ? maxRow.name
+          : "—";
+        document.getElementById("stat-min-val").textContent = minRow
+          ? fmtNum(minRow.Total)
+          : "—";
+        document.getElementById("stat-min-name").textContent = minRow
+          ? minRow.name
+          : "—";
+        document.getElementById("stats-row").style.display = "";
+        document.getElementById("charts-grid").style.display = "";
+
+        // Title
+        const typeLabels = {
+          tanam: "Luas Tanam",
+          panen: "Luas Panen",
+          puso: "Luas Puso",
+        };
+        const type = document.getElementById("dash-type").value;
+        const commodity = document.getElementById("dash-commodity").value;
+        document.getElementById("bar-chart-title").textContent =
+          `${typeLabels[type]} — ${commodity} ${yearLabel || ""}`;
+
+        // Ranking list
+        renderRanking(rows, grandTotal, sort);
+
+        // Bar chart
+        renderBarChart(rows, type);
+
+        // Monthly chart
+        renderMonthlyChart(data.monthlyNational || [], type);
+
+        // Notulensi
+        renderNotulensi(
+          rows,
+          data,
+          type,
+          commodity,
+          yearLabel,
+          grandTotal,
+          avg,
+          maxRow,
+          minRow,
+        );
+      }
+
+      function renderRanking(rows, grandTotal, sort) {
+        const list = document.getElementById("ranking-list");
+        const top10 = sort === "asc" ? rows.slice(0, 10) : rows.slice(0, 10);
+        const maxVal = Math.max(...top10.map((r) => r.Total));
+
+        document.getElementById("ranking-subtitle").textContent =
+          (sort === "asc" ? "Bottom" : "Top") +
+          ` ${top10.length} berdasarkan total (hektar)`;
+
+        list.innerHTML = top10
+          .map((r, i) => {
+            const pct = maxVal > 0 ? (r.Total / maxVal) * 100 : 0;
+            const medalClass =
+              i === 0
+                ? "gold-medal"
+                : i === 1
+                  ? "silver-medal"
+                  : i === 2
+                    ? "bronze-medal"
+                    : "";
+            return `
+      <div class="rank-item">
+        <div class="rank-num ${medalClass}">${i + 1}</div>
+        <div class="rank-info">
+          <div class="rank-name">${r.name}</div>
+          <div class="rank-val">${fmtFull(r.Total)} ha</div>
+        </div>
+        <div class="rank-bar-wrap">
+          <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+      </div>`;
+          })
+          .join("");
+      }
+
+      function renderNotulensi(
+        rows,
+        data,
+        type,
+        commodity,
+        yearLabel,
+        grandTotal,
+        avg,
+        maxRow,
+        minRow,
+      ) {
+        const typeLabels = {
+          tanam: "Luas Tanam",
+          panen: "Luas Panen",
+          puso: "Luas Puso",
+        };
+        const typeLabel = typeLabels[type] || type;
+        const monthly = data.monthlyNational || [];
+
+        // Unique province count — after multi-year merge, rows are per-province
+        // but we want to count real provinces (38), not duplicated rows
+        const uniqueProvCount = Math.min(rows.length, 38);
+
+        // Find peak month
+        let peakMonthIdx = 0,
+          peakVal = 0;
+        monthly.forEach((v, i) => {
+          if (v > peakVal) {
+            peakVal = v;
+            peakMonthIdx = i;
+          }
+        });
+        const MONTH_ID = [
+          "Januari",
+          "Februari",
+          "Maret",
+          "April",
+          "Mei",
+          "Juni",
+          "Juli",
+          "Agustus",
+          "September",
+          "Oktober",
+          "November",
+          "Desember",
+        ];
+
+        // Top 3 & bottom 3 provinces
+        const sorted = [...rows].sort((a, b) => b.Total - a.Total);
+        const top3 = sorted.slice(0, 3);
+        const bot3 = sorted
+          .filter((r) => r.Total > 0)
+          .slice(-3)
+          .reverse();
+
+        // Multi-year trend
+        let trendSection = "";
+        if (data._multiYear && data._years) {
+          const yearTotals = data._multiYear.map((y) => ({
+            year: y.year,
+            total: (y.rows || []).reduce((s, r) => s + (r.Total || 0), 0),
+          }));
+          const growthArr = [];
+          for (let i = 1; i < yearTotals.length; i++) {
+            const prev = yearTotals[i - 1].total,
+              curr = yearTotals[i].total;
+            const pct =
+              prev > 0 ? (((curr - prev) / prev) * 100).toFixed(1) : "N/A";
+            growthArr.push(
+              `${yearTotals[i - 1].year}→${yearTotals[i].year}: <b>${pct > 0 ? "+" : ""}${pct}%</b>`,
+            );
+          }
+          const bestYear = yearTotals.reduce(
+            (b, y) => (y.total > b.total ? y : b),
+            yearTotals[0],
+          );
+          trendSection = `
+          <div class="notulensi-section">
+            <div class="notulensi-section-title">📈 Tren Multi-Tahun (${yearLabel})</div>
+            <div class="notulensi-body">
+              <p>Rentang data mencakup <b>${data._years.length} tahun</b>. Tahun dengan total tertinggi: <span class="notulensi-highlight">${bestYear.year}</span> sebesar <b>${fmtFull(bestYear.total)} ha</b>.</p>
+              <ul>${growthArr.map((g) => `<li>${g}</li>`).join("")}</ul>
+            </div>
+          </div>`;
+        }
+
+        const html = `
+          <div class="notulensi-section">
+            <div class="notulensi-section-title">📋 Ringkasan Umum</div>
+            <div class="notulensi-body">
+              <p>Data <b>${typeLabel} ${commodity}</b> tahun <b>${yearLabel}</b> mencatat total nasional sebesar
+              <span class="notulensi-highlight">${fmtFull(grandTotal)} ha</span>
+              dari <b>${uniqueProvCount} provinsi</b>, dengan rata-rata per provinsi
+              <b>${fmtFull(grandTotal / uniqueProvCount)} ha</b>.</p>
+            </div>
+          </div>
+
+          <div class="notulensi-section">
+            <div class="notulensi-section-title">🏆 Provinsi Dominan & Terendah</div>
+            <div class="notulensi-body">
+              <p><b>Tiga provinsi tertinggi:</b></p>
+              <ul>${top3.map((r, i) => `<li><b>${i + 1}. ${r.name}</b> — ${fmtFull(r.Total)} ha (${grandTotal > 0 ? ((r.Total / grandTotal) * 100).toFixed(1) : 0}% dari nasional)</li>`).join("")}</ul>
+              ${bot3.length > 0 ? `<p style="margin-top:8px"><b>Tiga provinsi terendah:</b></p><ul>${bot3.map((r, i) => `<li><b>${r.name}</b> — ${fmtFull(r.Total)} ha</li>`).join("")}</ul>` : ""}
+            </div>
+          </div>
+
+          ${
+            monthly.some((v) => v > 0)
+              ? `
+          <div class="notulensi-section">
+            <div class="notulensi-section-title">📅 Distribusi Bulanan</div>
+            <div class="notulensi-body">
+              <p>Puncak produksi terjadi pada bulan <span class="notulensi-highlight">${MONTH_ID[peakMonthIdx]}</span>
+              dengan total <b>${fmtFull(peakVal)} ha</b> secara nasional.</p>
+              ${peakVal > 0 && grandTotal > 0 ? `<p style="margin-top:4px">Bulan puncak menyumbang <b>${((((peakVal / (grandTotal || 1)) * 100) / 12) * 12).toFixed(1)}%</b> dari total akumulasi tahunan.</p>` : ""}
+            </div>
+          </div>`
+              : ""
+          }
+
+          ${trendSection}
+
+          <div class="notulensi-section">
+            <div class="notulensi-section-title">📌 Catatan</div>
+            <div class="notulensi-body">
+              <ul>
+                <li>Sumber data: <b>SIPDPS Kementerian Pertanian RI</b></li>
+                <li>Data diambil pada: <b>${new Date().toLocaleString("id-ID")}</b></li>
+                <li>Satuan: <b>Hektar (ha)</b></li>
+              </ul>
+            </div>
+          </div>`;
+
+        const card = document.getElementById("notulensi-card");
+        document.getElementById("notulensi-content").innerHTML = html;
+        document.getElementById("notulensi-subtitle").textContent =
+          `${typeLabel} ${commodity} — ${yearLabel}`;
+        card.style.display = "block";
+
+        // Store plain text for copy
+        card.dataset.plainText =
+          `RANGKUMAN ${typeLabel.toUpperCase()} ${commodity.toUpperCase()} ${yearLabel}\n` +
+          `Total Nasional: ${fmtFull(grandTotal)} ha (${rows.length} provinsi)\n` +
+          `Rata-rata per provinsi: ${fmtFull(avg)} ha\n` +
+          `Provinsi tertinggi: ${maxRow?.name} (${fmtFull(maxRow?.Total)} ha)\n` +
+          `Provinsi terendah: ${minRow?.name} (${fmtFull(minRow?.Total)} ha)\n` +
+          (monthly.some((v) => v > 0)
+            ? `Puncak bulanan: ${MONTH_ID[peakMonthIdx]} (${fmtFull(peakVal)} ha)\n`
+            : "") +
+          `Dibuat: ${new Date().toLocaleString("id-ID")} | Sumber: SIPDPS Kementan RI`;
+      }
+
+      function copyNotulensi() {
+        const card = document.getElementById("notulensi-card");
+        const text = card.dataset.plainText || "";
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = document.getElementById("copy-notulensi-btn");
+          btn.textContent = "✅ Tersalin!";
+          setTimeout(() => {
+            btn.textContent = "📋 Salin";
+          }, 2000);
+        });
+      }
+
+      function renderBarChart(rows, type) {
+        const ctx = document.getElementById("barChart").getContext("2d");
+        if (barChartInst) barChartInst.destroy();
+
+        const colorMap = {
+          panen: { bg: "rgba(212,160,23,0.75)", border: "#9b7512" },
+          tanam: { bg: "rgba(212,160,23,0.75)", border: "#9B7512" },
+          puso: { bg: "rgba(192,57,43,0.75)", border: "#C0392B" },
+        };
+        const color = colorMap[type] || colorMap.panen;
+
+        const top20 = rows.slice(0, 20);
+        const labels = top20.map((r) =>
+          r.name.length > 14 ? r.name.substring(0, 13) + "…" : r.name,
+        );
+        const values = top20.map((r) => r.Total);
+
+        barChartInst = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Total (ha)",
+                data: values,
+                backgroundColor: color.bg,
+                borderColor: color.border,
+                borderWidth: 1.5,
+                borderRadius: 5,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => " " + fmtFull(ctx.raw) + " ha",
+                },
+              },
+            },
+            scales: {
+              x: {
+                ticks: {
+                  font: { size: 10 },
+                  color: "#7A6A50",
+                  maxRotation: 45,
+                },
+                grid: { display: false },
+              },
+              y: {
+                ticks: {
+                  font: { size: 10 },
+                  color: "#7A6A50",
+                  callback: (v) => fmtNum(v),
+                },
+                grid: { color: "rgba(212,160,23,0.1)" },
+              },
+            },
+          },
+        });
+      }
+
+      function renderLineChart(rows) {
+        const ctx = document.getElementById("barChart").getContext("2d");
+        if (barChartInst) barChartInst.destroy();
+
+        // Show top 5 provinces monthly trend
+        const top5 = [...rows].sort((a, b) => b.Total - a.Total).slice(0, 5);
+        const colors = ["#D4A017", "#b8890e", "#8E44AD", "#C0392B", "#3D2B0E"];
+
+        barChartInst = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: MONTH_LABELS,
+            datasets: top5.map((r, i) => ({
+              label:
+                r.name.length > 16 ? r.name.substring(0, 15) + "…" : r.name,
+              data: MONTHS.map((m) => r[m] || 0),
+              borderColor: colors[i],
+              backgroundColor: colors[i] + "22",
+              tension: 0.4,
+              borderWidth: 2,
+              pointRadius: 3,
+              fill: false,
+            })),
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: { font: { size: 10 }, color: "#7A6A50", boxWidth: 12 },
+              },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) =>
+                    " " + ctx.dataset.label + ": " + fmtFull(ctx.raw) + " ha",
+                },
+              },
+            },
+            scales: {
+              x: {
+                ticks: { font: { size: 10 }, color: "#7A6A50" },
+                grid: { display: false },
+              },
+              y: {
+                ticks: {
+                  font: { size: 10 },
+                  color: "#7A6A50",
+                  callback: (v) => fmtNum(v),
+                },
+                grid: { color: "rgba(212,160,23,0.1)" },
+              },
+            },
+          },
+        });
+      }
+
+      function renderRadarChart(rows) {
+        const ctx = document.getElementById("barChart").getContext("2d");
+        if (barChartInst) barChartInst.destroy();
+
+        // National monthly totals
+        const monthlyTotals = MONTHS.map((m) =>
+          rows.reduce((s, r) => s + (r[m] || 0), 0),
+        );
+
+        barChartInst = new Chart(ctx, {
+          type: "radar",
+          data: {
+            labels: MONTH_LABELS,
+            datasets: [
+              {
+                label: "Nasional (ha)",
+                data: monthlyTotals,
+                borderColor: "#D4A017",
+                backgroundColor: "rgba(212,160,23,0.15)",
+                borderWidth: 2,
+                pointBackgroundColor: "#9b7512",
+                pointRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: { label: (ctx) => " " + fmtFull(ctx.raw) + " ha" },
+              },
+            },
+            scales: {
+              r: {
+                ticks: {
+                  font: { size: 9 },
+                  color: "#7A6A50",
+                  backdropColor: "transparent",
+                  callback: (v) => fmtNum(v),
+                },
+                grid: { color: "rgba(212,160,23,0.15)" },
+                pointLabels: { font: { size: 10 }, color: "#3D2B0E" },
+              },
+            },
+          },
+        });
+      }
+
+      function renderMonthlyChart(monthly, type) {
+        const colorMap = {
+          panen: { bg: "rgba(212,160,23,0.65)", border: "#9b7512" },
+          tanam: { bg: "rgba(212,160,23,0.65)", border: "#9B7512" },
+          puso: { bg: "rgba(192,57,43,0.65)", border: "#C0392B" },
+        };
+        const color = colorMap[type] || colorMap.panen;
+
+        const ctx = document.getElementById("monthlyChart").getContext("2d");
+        if (monthlyChartInst) monthlyChartInst.destroy();
+
+        monthlyChartInst = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: MONTH_LABELS,
+            datasets: [
+              {
+                label: "Total Nasional (ha)",
+                data: monthly,
+                backgroundColor: color.bg,
+                borderColor: color.border,
+                borderWidth: 1.5,
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: { label: (ctx) => " " + fmtFull(ctx.raw) + " ha" },
+              },
+            },
+            scales: {
+              x: {
+                ticks: { font: { size: 10 }, color: "#7A6A50" },
+                grid: { display: false },
+              },
+              y: {
+                ticks: {
+                  font: { size: 10 },
+                  color: "#7A6A50",
+                  callback: (v) => fmtNum(v),
+                },
+                grid: { color: "rgba(212,160,23,0.1)" },
+              },
+            },
+          },
+        });
+        document.getElementById("monthly-card").style.display = "";
+      }
+
+      function setChartType(type) {
+        currentChartType = type;
+        document
+          .querySelectorAll(".chart-type-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById("btn-" + type).classList.add("active");
+
+        if (!dashboardData) return;
+        const sort = document.getElementById("dash-sort").value;
+        let rows = [...(dashboardData.rows || [])];
+        if (sort === "desc") rows.sort((a, b) => b.Total - a.Total);
+        else if (sort === "asc") rows.sort((a, b) => a.Total - b.Total);
+
+        if (type === "bar")
+          renderBarChart(rows, document.getElementById("dash-type").value);
+        else if (type === "line") renderLineChart(rows);
+        else if (type === "radar") renderRadarChart(rows);
+      }
+
+      // ===================== EXCEL TOGGLES =====================
+      function toggleItem(checkbox) {
+        const label = checkbox.closest(".toggle-item");
+        if (checkbox.checked) {
+          label.classList.add("checked");
+          label.querySelector(".check-icon").textContent = "✓";
+        } else {
+          label.classList.remove("checked");
+          label.querySelector(".check-icon").textContent = "";
+        }
+      }
+
+      function selectHeaderColor(el) {
+        document
+          .querySelectorAll(".swatch")
+          .forEach((s) => s.classList.remove("selected"));
+        el.classList.add("selected");
+        selectedHeaderColor = el.dataset.color;
+      }
+
+      function getExcelOptions() {
+        return {
+          includeSummary: document.getElementById("opt-summary").checked,
+          includeAutoTotal: document.getElementById("opt-chart-sheet").checked,
+          includeMetadata: document.getElementById("opt-metadata").checked,
+          freezeHeader: document.getElementById("opt-freeze").checked,
+          autoFilter: document.getElementById("opt-filter").checked,
+          conditionalFormat: document.getElementById("opt-conditional").checked,
+          headerColor: selectedHeaderColor,
+          fontSize:
+            parseInt(document.getElementById("opt-fontsize").value) || 10,
+          rowHeight:
+            parseInt(document.getElementById("opt-rowheight").value) || 20,
+          numberFormat: document.getElementById("opt-numformat").value,
+          colWidth: document.getElementById("opt-colwidth").value,
+          boldTotal: document.getElementById("opt-bold-total").checked,
+          altRows: document.getElementById("opt-alt-rows").checked,
+          borders: document.getElementById("opt-borders").checked,
+          customFilename: document.getElementById("opt-filename").value.trim(),
+          fileType: document.getElementById("opt-filetype").value,
+        };
+      }
+
+      // ===================== SCRAPING =====================
+      async function startScrape() {
+        const types = [...document.querySelectorAll(".pill-check:checked")]
+          .map((c) => c.value)
+          .filter((v) => ["tanam", "panen", "puso"].includes(v));
+        if (types.length === 0) {
+          alert("Pilih minimal satu jenis rekap.");
+          return;
+        }
+
+        const scope = document.querySelector(
+          'input[name="scope"]:checked',
+        ).value;
+        const provinceIds = [
+          ...document.querySelectorAll(".prov-check:checked"),
+        ].map((c) => c.value);
+        // Kab specific selection from double-select
+        const kabupatenNames = [...kabSelectedSet];
+
+        const yearFrom = parseInt(document.getElementById("year-from").value);
+        const yearToRaw = document.getElementById("year-to").value.trim();
+        const yearTo = yearToRaw !== "" ? parseInt(yearToRaw) : null;
+
+        if (!yearFrom || isNaN(yearFrom)) {
+          alert("Tahun awal harus diisi.");
+          return;
+        }
+        if (yearTo !== null && yearTo < yearFrom) {
+          alert("Tahun akhir tidak boleh lebih kecil dari tahun awal.");
+          return;
+        }
+
+        const commodity = document.getElementById("commodity").value;
+        const excelOptions = getExcelOptions();
+
+        const btn = document.getElementById("start-btn");
+        btn.disabled = true;
+        btn.innerHTML = "<span>⏳</span> Memulai...";
+
+        try {
+          const res = await fetch("/api/scrape/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              yearFrom,
+              yearTo,
+              commodity,
+              types,
+              scope,
+              provinceIds,
+              kabupatenNames,
+              excelOptions,
+            }),
+          });
+          if (res.status === 401) {
+            alert("Sesi habis. Silakan login ulang.");
+            location.reload();
+            return;
+          }
+          const data = await res.json();
+          if (data.error) {
+            alert(data.error);
+            btn.disabled = false;
+            btn.innerHTML = "<span>🚀</span> Mulai Scraping & Unduh";
+            return;
+          }
+
+          currentJobId = data.jobId;
+          document.getElementById("progress-section").style.display = "block";
+          document
+            .getElementById("progress-section")
+            .scrollIntoView({ behavior: "smooth" });
+          btn.innerHTML = "<span>⚡</span> Sedang Berjalan...";
+          startPolling();
+        } catch (e) {
+          alert("Error: " + e.message);
+          btn.disabled = false;
+          btn.innerHTML = "<span>🚀</span> Mulai Scraping & Unduh";
+        }
+      }
+
+      function startPolling() {
+        pollInterval = setInterval(async () => {
+          try {
+            const res = await fetch(`/api/scrape/progress/${currentJobId}`);
+            const data = await res.json();
+            updateProgress(data);
+            if (data.status === "done" || data.status === "error")
+              clearInterval(pollInterval);
+          } catch (e) {}
+        }, 1000);
+      }
+
+      function updateProgress(data) {
+        const pct = data.progress || 0;
+        document.getElementById("progress-pct").textContent = pct + "%";
+        document.getElementById("progress-bar").style.width = pct + "%";
+        if (data.status === "done") {
+          document.getElementById("progress-subtitle").textContent = "Selesai!";
+          document.getElementById("progress-label").textContent =
+            "— proses selesai";
+          showDownload(data.filename);
+        } else if (data.status === "error") {
+          document.getElementById("progress-subtitle").textContent =
+            "Terjadi Error";
+          document.getElementById("progress-pct").style.color = "var(--red)";
+        } else {
+          document.getElementById("progress-subtitle").textContent =
+            "Mengambil data...";
+          document.getElementById("progress-label").textContent = "selesai";
+        }
+        const logBox = document.getElementById("log-box");
+        if (data.log && data.log.length > 0) {
+          logBox.innerHTML = data.log
+            .map((l) => `<div class="log-line">${l}</div>`)
+            .join("");
+          logBox.scrollTop = logBox.scrollHeight;
+        }
+      }
+
+      function showDownload(filename) {
+        const dl = document.getElementById("download-section");
+        dl.style.display = "block";
+        document.getElementById("download-info").textContent =
+          filename || "data_sipdps.xlsx";
+        dl.scrollIntoView({ behavior: "smooth" });
+        document.getElementById("progress-bar").style.background =
+          "linear-gradient(90deg, var(--gold) 0%, var(--gold-light) 100%)";
+      }
+
+      function downloadFile() {
+        if (!currentJobId) return;
+        window.location.href = `/api/scrape/download/${currentJobId}`;
+      }
+
+      function resetForm() {
+        clearInterval(pollInterval);
+        currentJobId = null;
+        document.getElementById("progress-section").style.display = "none";
+        document.getElementById("download-section").style.display = "none";
+        document.getElementById("start-btn").disabled = false;
+        document.getElementById("start-btn").innerHTML =
+          "<span>🚀</span> Mulai Scraping & Unduh";
+        document.getElementById("progress-bar").style.width = "0%";
+        document.getElementById("progress-bar").style.background = "";
+        document.getElementById("log-box").innerHTML = "";
+        document.getElementById("progress-pct").textContent = "0%";
+        document.getElementById("progress-pct").style.color = "";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      checkStatus();
+    </script>
+  </body>
+</html>
